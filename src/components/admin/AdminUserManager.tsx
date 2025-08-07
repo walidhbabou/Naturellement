@@ -278,7 +278,7 @@ const AdminUserManager = () => {
                   <div className="flex gap-2 pt-2">
                     <Select 
                       value={user.role} 
-                      onValueChange={(value: 'admin' | 'user') => handleRoleChange(user.id, value)}
+                      onValueChange={(value: 'admin' | 'user') => updateUserRole(user.id, value)}
                     >
                       <SelectTrigger className="h-8 text-xs flex-1">
                         <SelectValue />
@@ -305,7 +305,7 @@ const AdminUserManager = () => {
                         <AlertDialogFooter className="flex-col sm:flex-row gap-2">
                           <AlertDialogCancel className="text-sm">Annuler</AlertDialogCancel>
                           <AlertDialogAction 
-                            onClick={() => handleDeleteUser(user.id)}
+                            onClick={() => deleteUser(user.id)}
                             className="text-sm bg-red-600 hover:bg-red-700"
                           >
                             Supprimer
