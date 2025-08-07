@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,8 +28,7 @@ import {
 import { 
   Edit, 
   Trash2, 
-  Plus, 
-  Eye,
+  Plus,
   Package
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -328,10 +328,12 @@ const AdminProductManager = () => {
                 <TableRow key={product.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <img
+                      <Image
                         src={product.image}
                         alt={product.name}
-                        className="w-10 h-10 object-cover rounded"
+                        width={40}
+                        height={40}
+                        className="object-cover rounded"
                       />
                       <div>
                         <p className="font-medium">{product.name}</p>

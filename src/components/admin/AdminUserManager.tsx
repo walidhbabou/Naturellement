@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -58,7 +58,7 @@ const AdminUserManager = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Récupérer les utilisateurs
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const token = localStorage.getItem('auth_token');
       const response = await fetch('/api/admin/users', {
@@ -77,7 +77,7 @@ const AdminUserManager = () => {
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Erreur",
         description: "Erreur de connexion",
@@ -86,7 +86,7 @@ const AdminUserManager = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
   // Mettre à jour le rôle d'un utilisateur
   const updateUserRole = async (userId: string, newRole: 'admin' | 'user') => {
@@ -116,7 +116,7 @@ const AdminUserManager = () => {
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Erreur",
         description: "Erreur de connexion",
@@ -148,11 +148,11 @@ const AdminUserManager = () => {
         const errorData = await response.json();
         toast({
           title: "Erreur",
-          description: errorData.error || "Impossible de supprimer l'utilisateur",
+          description: errorData.error || "Impossible de supprimer l&apos;utilisateur",
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Erreur",
         description: "Erreur de connexion",
@@ -163,7 +163,7 @@ const AdminUserManager = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
@@ -393,9 +393,9 @@ const AdminUserManager = () => {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Supprimer l'utilisateur</AlertDialogTitle>
+                            <AlertDialogTitle>Supprimer l&apos;utilisateur</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Êtes-vous sûr de vouloir supprimer l'utilisateur <strong>{user.name}</strong> ?
+                              Êtes-vous sûr de vouloir supprimer l&apos;utilisateur <strong>{user.name}</strong> ?
                               Cette action est irréversible.
                             </AlertDialogDescription>
                           </AlertDialogHeader>

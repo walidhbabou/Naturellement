@@ -63,8 +63,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             localStorage.removeItem('auth_token');
           }
         }
-      } catch (error) {
-        console.error('Erreur de vérification d\'authentification:', error);
+      } catch {
+        console.error('Erreur de vérification d\'authentification');
         localStorage.removeItem('auth_token');
       } finally {
         setIsLoading(false);
@@ -93,7 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         return { success: false, error: data.error || 'Erreur de connexion' };
       }
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Erreur de connexion au serveur' };
     }
   };
@@ -117,7 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         return { success: false, error: data.error || 'Erreur lors de l\'inscription' };
       }
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Erreur de connexion au serveur' };
     }
   };

@@ -94,9 +94,9 @@ const ProductGrid = () => {
           </h2>
           
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto font-serif italic leading-relaxed">
-            Découvrez notre collection exclusive d'assiettes et bols artisanaux, 
+            Découvrez notre collection exclusive d&apos;assiettes et bols artisanaux, 
             sculptés à la main dans les plus nobles essences de bois. 
-            Chaque pièce raconte une histoire, celle d'un savoir-faire ancestral 
+            Chaque pièce raconte une histoire, celle d&apos;un savoir-faire ancestral 
             transmis de génération en génération.
           </p>
           

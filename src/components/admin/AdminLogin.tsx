@@ -24,13 +24,13 @@ const AdminLogin = ({ onLogin }: AdminLoginProps) => {
     if (formData.username === 'admin' && formData.password === 'admin123') {
       toast({
         title: "Connexion réussie",
-        description: "Bienvenue dans l'interface d'administration",
+        description: "Bienvenue dans l&apos;interface d&apos;administration",
       });
       onLogin();
     } else {
       toast({
         title: "Erreur de connexion",
-        description: "Nom d'utilisateur ou mot de passe incorrect",
+        description: "Nom d&apos;utilisateur ou mot de passe incorrect",
         variant: "destructive",
       });
     }
@@ -45,13 +45,13 @@ const AdminLogin = ({ onLogin }: AdminLoginProps) => {
           </div>
           <CardTitle className="text-2xl">Administration</CardTitle>
           <CardDescription>
-            Connectez-vous pour accéder au panneau d'administration
+            Connectez-vous pour accéder au panneau d&apos;administration
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Nom d'utilisateur</Label>
+              <Label htmlFor="username">Nom d&apos;utilisateur</Label>
               <div className="relative">
                 <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
@@ -92,7 +92,7 @@ const AdminLogin = ({ onLogin }: AdminLoginProps) => {
               <strong>Identifiants de démonstration :</strong>
             </p>
             <p className="text-sm text-blue-700">
-              Nom d'utilisateur: <code className="bg-blue-100 px-1 rounded">admin</code>
+              Nom d&apos;utilisateur: <code className="bg-blue-100 px-1 rounded">admin</code>
             </p>
             <p className="text-sm text-blue-700">
               Mot de passe: <code className="bg-blue-100 px-1 rounded">admin123</code>

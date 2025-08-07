@@ -95,7 +95,7 @@ async function createDefaultAdmin() {
       INSERT OR IGNORE INTO users (email, password, name, role) 
       VALUES (?, ?, ?, ?)
     `, ['admin@naturlife.com', hashedPassword, 'Administrateur', 'admin']);
-  } catch (error) {
+  } catch {
     console.log('Admin user might already exist');
   }
 }

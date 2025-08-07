@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/database';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   // Cette route n'est disponible qu'en mode développement
   if (process.env.NODE_ENV !== 'development') {
     return NextResponse.json(
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       WHERE type='table' AND name NOT LIKE 'sqlite_%'
     `);
 
-    const result: Record<string, any[]> = {};
+    const result: Record<string, unknown[]> = {};
 
     for (const table of tables) {
       const tableName = table.name;
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 }
 
 // Route pour initialiser des données de test
-export async function POST(request: NextRequest) {
+export async function POST() {
   if (process.env.NODE_ENV !== 'development') {
     return NextResponse.json(
       { error: 'Route disponible uniquement en développement' },
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
           INSERT OR IGNORE INTO users (email, password, name, role, phone, address) 
           VALUES (?, ?, ?, ?, ?, ?)
         `, [user.email, user.password, user.name, user.role, user.phone, user.address]);
-      } catch (error) {
+      } catch {
         console.log(`Utilisateur ${user.email} existe déjà`);
       }
     }

@@ -12,7 +12,7 @@ const Footer = () => {
               Entrez en Contact
             </h3>
             <p className="text-amber-800 mb-6 font-serif italic text-lg">
-              Découvrez l'Art de l'Artisanat Authentique
+              Découvrez l&apos;Art de l&apos;Artisanat Authentique
             </p>
             <div className="w-24 h-1 bg-gradient-to-r from-amber-600 to-amber-800 mx-auto mb-8 rounded-full"></div>
             
@@ -65,7 +65,7 @@ const Footer = () => {
         <div className="container mx-auto px-4">
           <div className="text-center">
             <p className="text-sm font-serif italic tracking-wide">
-              © 2025 Tous Droits Réservés • <span className="font-bold">Naturlife.shop</span> • L'Art du Bois Noble
+              © 2025 Tous Droits Réservés • <span className="font-bold">Naturlife.shop</span> • L&apos;Art du Bois Noble
             </p>
           </div>
         </div>
