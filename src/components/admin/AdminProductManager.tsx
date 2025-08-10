@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,52 +48,38 @@ interface Product {
 
 const AdminProductManager = () => {
   const { toast } = useToast();
-  const [products, setProducts] = useState<Product[]>([
-    {
-      id: "1",
-      name: "Noble Gasâa en Bois de Noyer",
-      image: "/assets/wooden-set.jpg",
-      originalPrice: 1400.00,
-      currentPrice: 699.00,
-      discount: 60,
-      stock: 15,
-      status: 'active',
-      description: "Set complet en bois de noyer de haute qualité"
-    },
-    {
-      id: "2",
-      name: "Bol",
-      image: "/assets/wooden-bowl.jpg",
-      originalPrice: 318.00,
-      currentPrice: 149.00,
-      discount: 53,
-      stock: 25,
-      status: 'active',
-      description: "Bol artisanal en bois"
-    },
-    {
-      id: "3",
-      name: "Saladier",
-      image: "/assets/wooden-salad-bowl.jpg",
-      originalPrice: 400.00,
-      currentPrice: 199.00,
-      discount: 50,
-      stock: 8,
-      status: 'active',
-      description: "Grand saladier en bois naturel"
-    },
-    {
-      id: "4",
-      name: "Assiette plate",
-      image: "/assets/wooden-plate.jpg",
-      originalPrice: 400.00,
-      currentPrice: 199.00,
-      discount: 50,
-      stock: 0,
-      status: 'inactive',
-      description: "Assiette plate en bois sculpté"
-    },
-  ]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      setError(null);
+      const { data, error } = await supabase
+        .from('products')
+        .select('*');
+      if (error) {
+        setError("Erreur lors du chargement des produits");
+      } else {
+        setProducts(
+          (data || []).map((p: any) => ({
+            id: p.id.toString(),
+            name: p.name,
+            image: p.image_url || "/assets/wooden-bowl.jpg",
+            originalPrice: p.original_price,
+            currentPrice: p.price,
+            discount: p.discount,
+            stock: p.stock,
+            status: p.status,
+            description: p.description
+          }))
+        );
+      }
+      setLoading(false);
+    };
+    fetchProducts();
+  }, []);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -102,7 +89,9 @@ const AdminProductManager = () => {
     currentPrice: '',
     stock: '',
     description: '',
-    status: 'active' as 'active' | 'inactive'
+    status: 'active' as 'active' | 'inactive',
+    imageFile: null as File | null,
+    imageUrl: ''
   });
 
   const handleEdit = (product: Product) => {
@@ -113,7 +102,9 @@ const AdminProductManager = () => {
       currentPrice: product.currentPrice.toString(),
       stock: product.stock.toString(),
       description: product.description || '',
-      status: product.status
+      status: product.status,
+      imageFile: null,
+      imageUrl: product.image
     });
     setIsDialogOpen(true);
   };
@@ -126,12 +117,14 @@ const AdminProductManager = () => {
       currentPrice: '',
       stock: '',
       description: '',
-      status: 'active'
+      status: 'active',
+      imageFile: null,
+      imageUrl: ''
     });
     setIsDialogOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name || !formData.originalPrice || !formData.currentPrice || !formData.stock) {
       toast({
         title: "Erreur",
@@ -145,55 +138,128 @@ const AdminProductManager = () => {
     const currentPrice = parseFloat(formData.currentPrice);
     const discount = Math.round(((originalPrice - currentPrice) / originalPrice) * 100);
 
+    let imageUrl = formData.imageUrl;
+    // Upload image if a new file is selected
+    if (formData.imageFile) {
+      // Vérification du type MIME
+      if (!formData.imageFile.type.startsWith('image/')) {
+        toast({ title: "Erreur image", description: "Le fichier sélectionné n'est pas une image valide.", variant: "destructive" });
+        return;
+      }
+      const fileExt = formData.imageFile.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, formData.imageFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      if (uploadError || !uploadData) {
+        toast({ title: "Erreur upload image", description: (uploadError?.message || 'Upload échoué') + ' (Vérifiez le format et les permissions du bucket Supabase)', variant: "destructive" });
+        return;
+      }
+      const { data: publicUrlData } = supabase.storage.from('product-images').getPublicUrl(fileName);
+      imageUrl = publicUrlData?.publicUrl || '';
+      if (!imageUrl) {
+        toast({ title: "Erreur image", description: "Impossible de récupérer l'URL publique de l'image.", variant: "destructive" });
+        return;
+      }
+    }
+
     if (editingProduct) {
       // Modification
-      setProducts(products.map(p => 
-        p.id === editingProduct.id 
-          ? {
-              ...p,
-              name: formData.name,
-              originalPrice,
-              currentPrice,
-              discount,
-              stock: parseInt(formData.stock),
-              description: formData.description,
-              status: formData.status
-            }
-          : p
-      ));
-      toast({
-        title: "Succès",
-        description: "Produit modifié avec succès",
-      });
+      const { error } = await supabase
+        .from('products')
+        .update({
+          name: formData.name,
+          original_price: originalPrice,
+          price: currentPrice,
+          discount,
+          stock: parseInt(formData.stock),
+          description: formData.description,
+          status: formData.status,
+          image_url: imageUrl
+        })
+        .eq('id', editingProduct.id);
+      if (error) {
+        toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Succès", description: "Produit modifié avec succès" });
+        // Recharger les produits
+        const { data } = await supabase.from('products').select('*');
+        setProducts((data || []).map((p: any) => ({
+          id: p.id.toString(),
+          name: p.name,
+          image: p.image_url || "/assets/wooden-bowl.jpg",
+          originalPrice: p.original_price,
+          currentPrice: p.price,
+          discount: p.discount,
+          stock: p.stock,
+          status: p.status,
+          description: p.description
+        })));
+      }
     } else {
       // Ajout
-      const newProduct: Product = {
-        id: (products.length + 1).toString(),
-        name: formData.name,
-        image: "/assets/wooden-bowl.jpg", // Image par défaut
-        originalPrice,
-        currentPrice,
-        discount,
-        stock: parseInt(formData.stock),
-        status: formData.status,
-        description: formData.description
-      };
-      setProducts([...products, newProduct]);
-      toast({
-        title: "Succès",
-        description: "Produit ajouté avec succès",
-      });
+      const { error } = await supabase
+        .from('products')
+        .insert([
+          {
+            name: formData.name,
+            original_price: originalPrice,
+            price: currentPrice,
+            discount,
+            stock: parseInt(formData.stock),
+            image_url: imageUrl,
+            status: formData.status,
+            description: formData.description
+          }
+        ]);
+      if (error) {
+        toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Succès", description: "Produit ajouté avec succès" });
+        // Recharger les produits
+        const { data } = await supabase.from('products').select('*');
+        setProducts((data || []).map((p: any) => ({
+          id: p.id.toString(),
+          name: p.name,
+          image: p.image_url || "/assets/wooden-bowl.jpg",
+          originalPrice: p.original_price,
+          currentPrice: p.price,
+          discount: p.discount,
+          stock: p.stock,
+          status: p.status,
+          description: p.description
+        })));
+      }
     }
-    
     setIsDialogOpen(false);
   };
 
-  const handleDelete = (productId: string) => {
-    setProducts(products.filter(p => p.id !== productId));
-    toast({
-      title: "Succès",
-      description: "Produit supprimé avec succès",
-    });
+  const handleDelete = async (productId: string) => {
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', productId);
+    if (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Succès", description: "Produit supprimé avec succès" });
+      // Recharger les produits
+      const { data } = await supabase.from('products').select('*');
+      setProducts((data || []).map((p: any) => ({
+        id: p.id.toString(),
+        name: p.name,
+        image: p.image_url || "/assets/wooden-bowl.jpg",
+        originalPrice: p.original_price,
+        currentPrice: p.price,
+        discount: p.discount,
+        stock: p.stock,
+        status: p.status,
+        description: p.description
+      })));
+    }
   };
 
   const getStatusBadge = (status: string, stock: number) => {
@@ -243,7 +309,23 @@ const AdminProductManager = () => {
                   placeholder="Nom du produit"
                 />
               </div>
-              
+              <div>
+                <Label htmlFor="image">Image du produit</Label>
+                <Input
+                  id="image"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    setFormData({ ...formData, imageFile: file });
+                  }}
+                />
+                {formData.imageUrl && (
+                  <div className="mt-2">
+                    <Image src={formData.imageUrl} alt="Aperçu" width={80} height={80} className="rounded" />
+                  </div>
+                )}
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="originalPrice">Prix original *</Label>
@@ -266,7 +348,6 @@ const AdminProductManager = () => {
                   />
                 </div>
               </div>
-              
               <div>
                 <Label htmlFor="stock">Stock *</Label>
                 <Input
@@ -277,7 +358,18 @@ const AdminProductManager = () => {
                   placeholder="0"
                 />
               </div>
-              
+              <div>
+                <Label htmlFor="status">Statut</Label>
+                <select
+                  id="status"
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' })}
+                  className="w-full border rounded px-2 py-1"
+                >
+                  <option value="active">Actif</option>
+                  <option value="inactive">Inactif</option>
+                </select>
+              </div>
               <div>
                 <Label htmlFor="description">Description</Label>
                 <Textarea
@@ -312,81 +404,87 @@ const AdminProductManager = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Produit</TableHead>
-                <TableHead>Prix</TableHead>
-                <TableHead>Remise</TableHead>
-                <TableHead>Stock</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {products.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Image
-                        src={product.image}
-                        alt={product.name}
-                        width={40}
-                        height={40}
-                        className="object-cover rounded"
-                      />
-                      <div>
-                        <p className="font-medium">{product.name}</p>
-                        <p className="text-sm text-gray-500">ID: {product.id}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{product.currentPrice} DH</p>
-                      {product.originalPrice !== product.currentPrice && (
-                        <p className="text-sm text-gray-500 line-through">
-                          {product.originalPrice} DH
-                        </p>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {product.discount > 0 && (
-                      <Badge variant="destructive">-{product.discount}%</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <span className={product.stock <= 5 ? 'text-red-600 font-medium' : ''}>
-                      {product.stock}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    {getStatusBadge(product.status, product.stock)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(product)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(product.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          {loading ? (
+            <div className="text-center py-8">Chargement des produits...</div>
+          ) : error ? (
+            <div className="text-center text-red-600 py-8">{error}</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Produit</TableHead>
+                  <TableHead>Prix</TableHead>
+                  <TableHead>Remise</TableHead>
+                  <TableHead>Stock</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {products.map((product) => (
+                  <TableRow key={product.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Image
+                          src={product.image}
+                          alt={product.name}
+                          width={40}
+                          height={40}
+                          className="object-cover rounded"
+                        />
+                        <div>
+                          <p className="font-medium">{product.name}</p>
+                          <p className="text-sm text-gray-500">ID: {product.id}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{product.currentPrice} DH</p>
+                        {product.originalPrice !== product.currentPrice && (
+                          <p className="text-sm text-gray-500 line-through">
+                            {product.originalPrice} DH
+                          </p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {product.discount > 0 && (
+                        <Badge variant="destructive">-{product.discount}%</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <span className={product.stock <= 5 ? 'text-red-600 font-medium' : ''}>
+                        {product.stock}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {getStatusBadge(product.status, product.stock)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(product)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(product.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

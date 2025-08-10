@@ -2,7 +2,8 @@
 
 import { ShoppingCart, Truck, Settings, User, LogOut } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import CartPanel from "./CartPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,18 @@ import AuthForm from "@/components/auth/AuthForm";
 const Header = () => {
   const { user, logout, isAdmin, isAuthenticated } = useAuth();
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+  const [showCart, setShowCart] = useState(false);
+
+  useEffect(() => {
+    const updateCount = () => {
+      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      setCartCount(cart.reduce((sum, item) => sum + item.quantity, 0));
+    };
+    updateCount();
+    window.addEventListener("storage", updateCount);
+    return () => window.removeEventListener("storage", updateCount);
+  }, []);
 
   return (
     <header className="w-full">
@@ -39,18 +52,18 @@ const Header = () => {
           <div className="flex items-center justify-between">
             {/* Navigation with hover animations */}
             <nav className="hidden md:flex space-x-8">
-              <a href="#" className="text-foreground hover:text-primary transition-all duration-300 transform hover:scale-110 hover:-translate-y-1 relative group font-serif">
-                Promotions Exclusives
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
-              </a>
-              <a href="#" className="text-foreground hover:text-primary transition-all duration-300 transform hover:scale-110 hover:-translate-y-1 relative group font-serif">
-                Nos Créations
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
-              </a>
-              <a href="#" className="text-foreground hover:text-primary transition-all duration-300 transform hover:scale-110 hover:-translate-y-1 relative group font-serif">
-                Notre Histoire
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
-              </a>
+                <Link href="/promotion" className="text-foreground hover:text-primary transition-all duration-300 transform hover:scale-110 hover:-translate-y-1 relative group font-serif">
+                  Promotion
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+                </Link>
+                <Link href="/produits" className="text-foreground hover:text-primary transition-all duration-300 transform hover:scale-110 hover:-translate-y-1 relative group font-serif">
+                  Produits
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+                </Link>
+                <Link href="/a-propos" className="text-foreground hover:text-primary transition-all duration-300 transform hover:scale-110 hover:-translate-y-1 relative group font-serif">
+                  À propos
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+                </Link>
             </nav>
 
             {/* Logo with breathing animation */}
@@ -58,7 +71,7 @@ const Header = () => {
               <Link href="/">
                 <h1 className="text-4xl font-bold text-primary animate-fade-in-up">
                   <span className="italic font-serif hover:animate-pulse cursor-pointer transition-all duration-500 hover:text-4xl inline-block transform hover:rotate-2 tracking-wider">
-                    Naturlife
+                    Atlas coop art
                   </span>
                   <div className="text-xs font-light tracking-widest text-muted-foreground mt-1 font-serif italic">
                     Artisanat Authentique
@@ -112,13 +125,16 @@ const Header = () => {
               )}
               
               <div className="relative">
-                <button className="p-2 hover:bg-accent rounded-lg transition-all duration-300 transform hover:scale-110 hover:rotate-12 group">
+                <button className="p-2 hover:bg-accent rounded-lg transition-all duration-300 transform hover:scale-110 hover:rotate-12 group" onClick={() => setShowCart(true)}>
                   <ShoppingCart className="w-6 h-6 text-foreground group-hover:animate-bounce" />
-                  <span className="absolute -top-1 -right-1 bg-sale text-sale-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center animate-ping-slow">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-sale opacity-75 animate-ping"></span>
-                    <span className="relative">0</span>
-                  </span>
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-sale text-sale-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center animate-ping-slow">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-sale opacity-75 animate-ping"></span>
+                      <span className="relative">{cartCount}</span>
+                    </span>
+                  )}
                 </button>
+                {showCart && <CartPanel onClose={() => setShowCart(false)} onCheckout={() => {}} />}
               </div>
             </div>
           </div>
