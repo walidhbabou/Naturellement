@@ -25,7 +25,7 @@ const Header = () => {
   useEffect(() => {
     const updateCount = () => {
       const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-      setCartCount(cart.reduce((sum, item) => sum + item.quantity, 0));
+      setCartCount(cart.reduce((sum: number, item: { quantity: number }) => sum + item.quantity, 0));
     };
     updateCount();
     window.addEventListener("storage", updateCount);
