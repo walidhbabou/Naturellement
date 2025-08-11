@@ -63,17 +63,17 @@ const AdminProductManager = () => {
         setError("Erreur lors du chargement des produits");
       } else {
         setProducts(
-          (data || []).map((p: Product) => ({
+          (data || []).map((p) => ({
             id: p.id.toString(),
             name: p.name,
-            image: p.image_url || "/assets/wooden-bowl.jpg",
-            originalPrice: p.original_price,
+            image: p.image_url ? p.image_url : "/assets/wooden-bowl.jpg",
+            originalPrice: p.original_price ?? p.price,
             currentPrice: p.price,
-            discount: p.discount,
-            stock: p.stock,
-            status: p.status,
-            description: p.description
-          }))
+            discount: p.discount ?? 0,
+            stock: p.stock ?? 0,
+            status: p.status ?? 'active',
+            description: p.description ?? ''
+          })) as Product[]
         );
       }
       setLoading(false);
@@ -188,17 +188,17 @@ const AdminProductManager = () => {
         toast({ title: "Succès", description: "Produit modifié avec succès" });
         // Recharger les produits
         const { data } = await supabase.from('products').select('*');
-  setProducts((data || []).map((p: Product) => ({
+        setProducts((data || []).map((p) => ({
           id: p.id.toString(),
           name: p.name,
-          image: p.image_url || "/assets/wooden-bowl.jpg",
-          originalPrice: p.original_price,
+          image: p.image_url ? p.image_url : "/assets/wooden-bowl.jpg",
+          originalPrice: p.original_price ?? p.price,
           currentPrice: p.price,
-          discount: p.discount,
-          stock: p.stock,
-          status: p.status,
-          description: p.description
-        })));
+          discount: p.discount ?? 0,
+          stock: p.stock ?? 0,
+          status: p.status ?? 'active',
+          description: p.description ?? ''
+        })) as Product[]);
       }
     } else {
       // Ajout
@@ -222,17 +222,17 @@ const AdminProductManager = () => {
         toast({ title: "Succès", description: "Produit ajouté avec succès" });
         // Recharger les produits
         const { data } = await supabase.from('products').select('*');
-        setProducts((data || []).map((p: any) => ({
+        setProducts((data || []).map((p) => ({
           id: p.id.toString(),
           name: p.name,
-          image: p.image_url || "/assets/wooden-bowl.jpg",
-          originalPrice: p.original_price,
+          image: p.image_url ? p.image_url : "/assets/wooden-bowl.jpg",
+          originalPrice: p.original_price ?? p.price,
           currentPrice: p.price,
-          discount: p.discount,
-          stock: p.stock,
-          status: p.status,
-          description: p.description
-        })));
+          discount: p.discount ?? 0,
+          stock: p.stock ?? 0,
+          status: p.status ?? 'active',
+          description: p.description ?? ''
+        })) as Product[]);
       }
     }
     setIsDialogOpen(false);
@@ -249,17 +249,17 @@ const AdminProductManager = () => {
       toast({ title: "Succès", description: "Produit supprimé avec succès" });
       // Recharger les produits
       const { data } = await supabase.from('products').select('*');
-  setProducts((data || []).map((p: Product) => ({
+  setProducts((data || []).map((p) => ({
         id: p.id.toString(),
         name: p.name,
-        image: p.image_url || "/assets/wooden-bowl.jpg",
-        originalPrice: p.original_price,
+        image: p.image_url ? p.image_url : "/assets/wooden-bowl.jpg",
+        originalPrice: p.original_price ?? p.price,
         currentPrice: p.price,
-        discount: p.discount,
-        stock: p.stock,
-        status: p.status,
-        description: p.description
-      })));
+        discount: p.discount ?? 0,
+        stock: p.stock ?? 0,
+        status: p.status ?? 'active',
+        description: p.description ?? ''
+      })) as Product[]);
     }
   };
 
@@ -493,7 +493,4 @@ const AdminProductManager = () => {
 };
 
 export default AdminProductManager;
-function toast(arg0: { title: string; description: string; variant: string; }) {
-    throw new Error("Function not implemented.");
-}
 

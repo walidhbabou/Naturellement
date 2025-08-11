@@ -44,12 +44,12 @@ export async function POST(request: NextRequest) {
   }
 
   // Insérer l'utilisateur
-  const { data, error } = await supabase
+  const { error: insertError } = await supabase
     .from('users')
     .insert([{ email, password, name, phone, address, role: 'user' }]);
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (insertError) {
+    return NextResponse.json({ error: insertError.message }, { status: 500 });
   }
 
   // ...générer le token et retourner la réponse...
