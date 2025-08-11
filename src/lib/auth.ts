@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { supabase } from '@/lib/supabaseClient';
+import { NextRequest, NextResponse } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'naturlife-secret-key-change-in-production';
 

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import CartPanel from "./CartPanel";
 import { useAuth } from "@/contexts/AuthContext";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -119,6 +119,7 @@ const Header = () => {
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-md">
+                    <DialogTitle className="sr-only">Connexion</DialogTitle>
                     <AuthForm onClose={() => setIsAuthDialogOpen(false)} />
                   </DialogContent>
                 </Dialog>

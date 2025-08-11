@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { Product, CartItem } from "@/types";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import Image from "next/image";
@@ -9,7 +10,7 @@ import Footer from "@/components/Footer";
 
 export default function ProductPage() {
   const { id } = useParams();
-  const [product, setProduct] = useState<any | null>(null);
+  const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -34,7 +35,7 @@ export default function ProductPage() {
 
   const handleAddToCart = () => {
     if (!product) return;
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const cart: CartItem[] = JSON.parse(localStorage.getItem('cart') || '[]');
     const existing = cart.find((item) => item.id === product.id);
     if (existing) {
       existing.quantity += quantity;

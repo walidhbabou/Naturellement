@@ -63,7 +63,7 @@ const AdminProductManager = () => {
         setError("Erreur lors du chargement des produits");
       } else {
         setProducts(
-          (data || []).map((p: any) => ({
+          (data || []).map((p: Product) => ({
             id: p.id.toString(),
             name: p.name,
             image: p.image_url || "/assets/wooden-bowl.jpg",
@@ -176,18 +176,19 @@ const AdminProductManager = () => {
           price: currentPrice,
           discount,
           stock: parseInt(formData.stock),
-          description: formData.description,
+          image_url: imageUrl,
           status: formData.status,
-          image_url: imageUrl
+          description: formData.description
         })
         .eq('id', editingProduct.id);
+
       if (error) {
         toast({ title: "Erreur", description: error.message, variant: "destructive" });
       } else {
         toast({ title: "Succès", description: "Produit modifié avec succès" });
         // Recharger les produits
         const { data } = await supabase.from('products').select('*');
-        setProducts((data || []).map((p: any) => ({
+  setProducts((data || []).map((p: Product) => ({
           id: p.id.toString(),
           name: p.name,
           image: p.image_url || "/assets/wooden-bowl.jpg",
@@ -248,7 +249,7 @@ const AdminProductManager = () => {
       toast({ title: "Succès", description: "Produit supprimé avec succès" });
       // Recharger les produits
       const { data } = await supabase.from('products').select('*');
-      setProducts((data || []).map((p: any) => ({
+  setProducts((data || []).map((p: Product) => ({
         id: p.id.toString(),
         name: p.name,
         image: p.image_url || "/assets/wooden-bowl.jpg",
@@ -492,3 +493,7 @@ const AdminProductManager = () => {
 };
 
 export default AdminProductManager;
+function toast(arg0: { title: string; description: string; variant: string; }) {
+    throw new Error("Function not implemented.");
+}
+

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
+import type { CartItem } from "@/types";
 
 export default function CartPanel({ onClose, onCheckout }: { onClose: () => void; onCheckout: () => void }) {
-  const [cart, setCart] = useState<any[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
 
   useEffect(() => {
     const stored = localStorage.getItem("cart");
@@ -41,7 +42,7 @@ export default function CartPanel({ onClose, onCheckout }: { onClose: () => void
             <div className="font-bold text-lg mb-4">Sous-total: {subtotal.toFixed(2)} DH</div>
             <div className="flex gap-4">
               <button onClick={onCheckout} className="bg-neutral-800 text-white px-4 py-2 rounded font-bold flex-1">Commander</button>
-              <button onClick={onClose} className="bg-gray-100 text-neutral-800 px-4 py-2 rounded font-bold flex-1">Ajouter d'autres articles</button>
+              <button onClick={onClose} className="bg-gray-100 text-neutral-800 px-4 py-2 rounded font-bold flex-1">Ajouter d&apos;autres articles</button>
             </div>
           </>
         )}
