@@ -4,18 +4,27 @@ import Footer from "@/components/Footer";
 import { useEffect, useState } from "react";
 import type { Product } from "@/types";
 import { supabase } from "@/lib/supabaseClient";
-import Image from "next/image";
+import ProductCard from "@/components/ProductCard";
 
 export default function ProduitsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(8);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
       setError(null);
-      const { data, error } = await supabase.from('products').select('*');
+      // Récupère le total
+      const { count } = await supabase.from('products').select('*', { count: 'exact', head: true });
+      setTotal(count || 0);
+      // Récupère la page
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      const { data, error } = await supabase.from('products').select('*').range(from, to);
       if (error) {
         setError("Erreur lors du chargement des produits");
       } else {
@@ -24,7 +33,7 @@ export default function ProduitsPage() {
       setLoading(false);
     };
     fetchProducts();
-  }, []);
+  }, [page, pageSize]);
 
   let content;
   if (loading) {
@@ -33,30 +42,42 @@ export default function ProduitsPage() {
     content = <div className="text-red-600 py-8">{error}</div>;
   } else {
     content = (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-5xl">
-        {products.map((product) => (
-          <a
-            key={product.id}
-            href={`/produits/${product.id}`}
-            className="bg-white rounded-lg shadow p-4 flex flex-col items-center hover:ring-2 hover:ring-orange-400 transition cursor-pointer"
-            style={{ textDecoration: 'none', color: 'inherit' }}
+      <>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-w-5xl">
+          {products.map((product) => (
+            <a key={product.id} href={`/produits/${product.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="scale-90">
+                <ProductCard product={{
+                  id: product.id.toString(),
+                  name: product.name,
+                  image: product.image_url || "/assets/wooden-bowl.jpg",
+                  originalPrice: Number(product.original_price ?? product.price ?? 0),
+                  currentPrice: Number(product.price ?? 0),
+                  discount: Number(product.discount ?? 0)
+                }} />
+              </div>
+            </a>
+          ))}
+        </div>
+        {/* Pagination */}
+        <div className="flex justify-center items-center gap-2 mt-8">
+          <button
+            className="px-3 py-1 rounded bg-gray-100 text-gray-700 font-bold disabled:opacity-50"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
           >
-            <Image src={product.image_url || "/assets/wooden-bowl.jpg"} alt={product.name} width={180} height={180} className="rounded mb-2 object-cover" />
-            <h2 className="font-serif font-medium text-lg mb-2 text-center">{product.name}</h2>
-            <div className="flex flex-col items-center mb-2">
-              {product.original_price && product.original_price !== product.price && (
-                <span className="line-through text-gray-400 text-sm">{product.original_price} DH</span>
-              )}
-              <span className="text-xl font-bold text-orange-700">{product.price} DH</span>
-            </div>
-            {(product.discount ?? 0) > 0 && (
-              <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full mb-2">-{product.discount}%</span>
-            )}
-            <p className="text-sm text-gray-600 text-center mb-2">{product.description}</p>
-            {/* Stock non affiché */}
-          </a>
-        ))}
-      </div>
+            Précédent
+          </button>
+          <span className="px-2">Page {page} / {Math.max(1, Math.ceil(total / pageSize))}</span>
+          <button
+            className="px-3 py-1 rounded bg-gray-100 text-gray-700 font-bold disabled:opacity-50"
+            onClick={() => setPage((p) => p + 1)}
+            disabled={page >= Math.ceil(total / pageSize)}
+          >
+            Suivant
+          </button>
+        </div>
+      </>
     );
   }
 

@@ -44,6 +44,7 @@ interface Product {
   stock: number;
   status: 'active' | 'inactive';
   description?: string;
+  video_url?: string;
 }
 
 const AdminProductManager = () => {
@@ -72,7 +73,8 @@ const AdminProductManager = () => {
             discount: p.discount ?? 0,
             stock: p.stock ?? 0,
             status: p.status ?? 'active',
-            description: p.description ?? ''
+            description: p.description ?? '',
+            video_url: p.video_url ?? ''
           })) as Product[]
         );
       }
@@ -84,14 +86,17 @@ const AdminProductManager = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState({
-    name: '',
-    originalPrice: '',
-    currentPrice: '',
-    stock: '',
-    description: '',
-    status: 'active' as 'active' | 'inactive',
-    imageFile: null as File | null,
-    imageUrl: ''
+  name: '',
+  originalPrice: '',
+  currentPrice: '',
+  stock: '',
+  description: '',
+  status: 'active' as 'active' | 'inactive',
+  imageFile: null as File | null,
+  imageUrl: '',
+  videoFile: null as File | null,
+  videoUrl: '',
+  isPromo: false
   });
 
   const handleEdit = (product: Product) => {
@@ -104,7 +109,10 @@ const AdminProductManager = () => {
       description: product.description || '',
       status: product.status,
       imageFile: null,
-      imageUrl: product.image
+      imageUrl: product.image,
+      videoFile: null,
+      videoUrl: product.video_url || '',
+      isPromo: !!product.is_promo
     });
     setIsDialogOpen(true);
   };
@@ -119,7 +127,10 @@ const AdminProductManager = () => {
       description: '',
       status: 'active',
       imageFile: null,
-      imageUrl: ''
+      imageUrl: '',
+      videoFile: null,
+      videoUrl: '',
+      isPromo: false
     });
     setIsDialogOpen(true);
   };
@@ -139,30 +150,67 @@ const AdminProductManager = () => {
     const discount = Math.round(((originalPrice - currentPrice) / originalPrice) * 100);
 
     let imageUrl = formData.imageUrl;
+    let videoUrl = formData.videoUrl;
     // Upload image if a new file is selected
     if (formData.imageFile) {
       // Vérification du type MIME
       if (!formData.imageFile.type.startsWith('image/')) {
         toast({ title: "Erreur image", description: "Le fichier sélectionné n'est pas une image valide.", variant: "destructive" });
         return;
+       // Vérification taille (50 Mo max)
+       if (formData.videoFile.size > 50 * 1024 * 1024) {
+         toast({ title: "Erreur vidéo", description: "La vidéo dépasse la taille maximale autorisée (50 Mo).", variant: "destructive" });
+         return;
+       }
       }
       const fileExt = formData.imageFile.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('product-images')
-        .upload(fileName, formData.imageFile, {
-          cacheControl: '3600',
-          upsert: false
-        });
-      if (uploadError || !uploadData) {
-        toast({ title: "Erreur upload image", description: (uploadError?.message || 'Upload échoué') + ' (Vérifiez le format et les permissions du bucket Supabase)', variant: "destructive" });
-        return;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('vedio_bucket')
+          .upload(fileName, formData.videoFile, {
+            cacheControl: '3600',
+            upsert: true
+          });
+        if (uploadError || !uploadData) {
+          toast({ title: "Erreur upload vidéo", description: `Code: ${uploadError?.statusCode || ''} - ${uploadError?.message || 'Upload échoué'} (Vérifiez le format, la taille et les permissions du bucket vedio_bucket)`, variant: "destructive" });
+          return;
+        } else {
+          // Correction : utiliser uploadData.path pour générer l'URL publique
+          const { data: publicUrlData } = supabase.storage.from('vedio_bucket').getPublicUrl(uploadData.path);
+          videoUrl = publicUrlData?.publicUrl || '';
+          if (!videoUrl) {
+            toast({ title: "Erreur vidéo", description: "Impossible de récupérer l'URL publique de la vidéo.", variant: "destructive" });
+            return;
+          }
+        }
       }
-      const { data: publicUrlData } = supabase.storage.from('product-images').getPublicUrl(fileName);
-      imageUrl = publicUrlData?.publicUrl || '';
-      if (!imageUrl) {
-        toast({ title: "Erreur image", description: "Impossible de récupérer l'URL publique de l'image.", variant: "destructive" });
+    // Upload video if a new file is selected
+    if (formData.videoFile) {
+      if (!formData.videoFile.type.startsWith('video/')) {
+        toast({ title: "Erreur vidéo", description: "Le fichier sélectionné n'est pas une vidéo valide.", variant: "destructive" });
         return;
+      } else {
+        const fileExt = formData.videoFile.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('vedio_bucket')
+          .upload(fileName, formData.videoFile, {
+            cacheControl: '3600',
+            upsert: false
+          });
+        if (uploadError || !uploadData) {
+          toast({ title: "Erreur upload vidéo", description: (uploadError?.message || 'Upload échoué') + ' (Vérifiez les permissions du bucket vedio_bucket)', variant: "destructive" });
+          return;
+        } else {
+          // Correction : utiliser uploadData.path pour générer l'URL publique
+          const { data: publicUrlData } = supabase.storage.from('vedio_bucket').getPublicUrl(uploadData.path);
+          videoUrl = publicUrlData?.publicUrl || '';
+          console.log('UploadData:', uploadData);
+          console.log('Public URL:', videoUrl);
+          if (!videoUrl) {
+            toast({ title: "Erreur vidéo", description: "Impossible de récupérer l'URL publique de la vidéo.", variant: "destructive" });
+            return;
+          }
+        }
       }
     }
 
@@ -177,8 +225,10 @@ const AdminProductManager = () => {
           discount,
           stock: parseInt(formData.stock),
           image_url: imageUrl,
+          video_url: videoUrl,
           status: formData.status,
-          description: formData.description
+          description: formData.description,
+          is_promo: formData.isPromo
         })
         .eq('id', editingProduct.id);
 
@@ -197,7 +247,8 @@ const AdminProductManager = () => {
           discount: p.discount ?? 0,
           stock: p.stock ?? 0,
           status: p.status ?? 'active',
-          description: p.description ?? ''
+          description: p.description ?? '',
+          video_url: p.video_url ?? ''
         })) as Product[]);
       }
     } else {
@@ -212,8 +263,10 @@ const AdminProductManager = () => {
             discount,
             stock: parseInt(formData.stock),
             image_url: imageUrl,
+            video_url: videoUrl,
             status: formData.status,
-            description: formData.description
+            description: formData.description,
+            is_promo: formData.isPromo
           }
         ]);
       if (error) {
@@ -231,11 +284,12 @@ const AdminProductManager = () => {
           discount: p.discount ?? 0,
           stock: p.stock ?? 0,
           status: p.status ?? 'active',
-          description: p.description ?? ''
+          description: p.description ?? '',
+          video_url: p.video_url ?? ''
         })) as Product[]);
       }
-    }
     setIsDialogOpen(false);
+  }
   };
 
   const handleDelete = async (productId: string) => {
@@ -287,7 +341,7 @@ const AdminProductManager = () => {
               Ajouter un produit
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="w-full max-w-lg p-4 sm:p-6">
             <DialogHeader>
               <DialogTitle>
                 {editingProduct ? 'Modifier le produit' : 'Ajouter un produit'}
@@ -299,8 +353,17 @@ const AdminProductManager = () => {
                 }
               </DialogDescription>
             </DialogHeader>
-            
-            <div className="space-y-4">
+            <form className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="col-span-1 sm:col-span-2 flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isPromo"
+                  checked={formData.isPromo}
+                  onChange={e => setFormData({ ...formData, isPromo: e.target.checked })}
+                  className="w-4 h-4"
+                />
+                <Label htmlFor="isPromo">Produit en promotion</Label>
+              </div>
               <div>
                 <Label htmlFor="name">Nom du produit *</Label>
                 <Input
@@ -327,27 +390,44 @@ const AdminProductManager = () => {
                   </div>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="originalPrice">Prix original *</Label>
-                  <Input
-                    id="originalPrice"
-                    type="number"
-                    value={formData.originalPrice}
-                    onChange={(e) => setFormData({...formData, originalPrice: e.target.value})}
-                    placeholder="0.00"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="currentPrice">Prix actuel *</Label>
-                  <Input
-                    id="currentPrice"
-                    type="number"
-                    value={formData.currentPrice}
-                    onChange={(e) => setFormData({...formData, currentPrice: e.target.value})}
-                    placeholder="0.00"
-                  />
-                </div>
+              <div>
+                <Label htmlFor="video">Vidéo du produit</Label>
+                <Input
+                  id="video"
+                  type="file"
+                  accept="video/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    setFormData({ ...formData, videoFile: file });
+                  }}
+                />
+                {formData.videoUrl && (
+                  <div className="mt-2">
+                    <a href={formData.videoUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
+                      Voir la vidéo actuelle
+                    </a>
+                  </div>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="originalPrice">Prix original *</Label>
+                <Input
+                  id="originalPrice"
+                  type="number"
+                  value={formData.originalPrice}
+                  onChange={(e) => setFormData({...formData, originalPrice: e.target.value})}
+                  placeholder="0.00"
+                />
+              </div>
+              <div>
+                <Label htmlFor="currentPrice">Prix actuel *</Label>
+                <Input
+                  id="currentPrice"
+                  type="number"
+                  value={formData.currentPrice}
+                  onChange={(e) => setFormData({...formData, currentPrice: e.target.value})}
+                  placeholder="0.00"
+                />
               </div>
               <div>
                 <Label htmlFor="stock">Stock *</Label>
@@ -371,16 +451,17 @@ const AdminProductManager = () => {
                   <option value="inactive">Inactif</option>
                 </select>
               </div>
-              <div>
+              <div className="sm:col-span-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
                   placeholder="Description du produit"
+                  className="min-h-[60px]"
                 />
               </div>
-            </div>
+            </form>
             
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
@@ -493,4 +574,3 @@ const AdminProductManager = () => {
 };
 
 export default AdminProductManager;
-

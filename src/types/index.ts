@@ -7,6 +7,7 @@ export interface Product {
   discount?: number;
   stock?: number;
   image_url?: string;
+  video_url?: string;
   status?: string;
   created_at?: string;
   updated_at?: string;

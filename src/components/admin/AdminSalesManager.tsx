@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -39,131 +40,114 @@ import { useToast } from "@/hooks/use-toast";
 
 interface Order {
   id: string;
+  date: string;
+  total: number;
+  status: 'en attente' | 'confirmée' | 'expédiée' | 'livrée' | 'annulée';
   customer: {
     name: string;
     email: string;
-    phone: string;
-    address: string;
   };
   items: {
     productName: string;
     quantity: number;
     price: number;
   }[];
-  total: number;
-  status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
-  date: string;
-  paymentMethod: string;
 }
 
 const AdminSalesManager = () => {
   const { toast } = useToast();
-  const [orders, setOrders] = useState<Order[]>([
-    {
-      id: "ORD-001",
-      customer: {
-        name: "Marie Dubois",
-        email: "marie.dubois@email.com",
-        phone: "+212 6 12 34 56 78",
-        address: "123 Rue Mohammed V, Casablanca"
-      },
-      items: [
-        { productName: "Saladier", quantity: 1, price: 199 }
-      ],
-      total: 199,
-      status: 'delivered',
-      date: "2025-08-06",
-      paymentMethod: "Carte bancaire"
-    },
-    {
-      id: "ORD-002",
-      customer: {
-        name: "Jean Martin",
-        email: "jean.martin@email.com",
-        phone: "+212 6 23 45 67 89",
-        address: "456 Avenue Hassan II, Rabat"
-      },
-      items: [
-        { productName: "Bol", quantity: 1, price: 149 }
-      ],
-      total: 149,
-      status: 'pending',
-      date: "2025-08-06",
-      paymentMethod: "Paiement à la livraison"
-    },
-    {
-      id: "ORD-003",
-      customer: {
-        name: "Sophie Bernard",
-        email: "sophie.bernard@email.com",
-        phone: "+212 6 34 56 78 90",
-        address: "789 Boulevard Zerktouni, Marrakech"
-      },
-      items: [
-        { productName: "Noble Gasâa en Bois de Noyer", quantity: 1, price: 699 }
-      ],
-      total: 699,
-      status: 'shipped',
-      date: "2025-08-05",
-      paymentMethod: "Virement bancaire"
-    },
-    {
-      id: "ORD-004",
-      customer: {
-        name: "Pierre Leroy",
-        email: "pierre.leroy@email.com",
-        phone: "+212 6 45 67 89 01",
-        address: "321 Rue Al Imam Malik, Fès"
-      },
-      items: [
-        { productName: "Assiette plate", quantity: 1, price: 199 }
-      ],
-      total: 199,
-      status: 'confirmed',
-      date: "2025-08-05",
-      paymentMethod: "Carte bancaire"
-    },
-    {
-      id: "ORD-005",
-      customer: {
-        name: "Anne Moreau",
-        email: "anne.moreau@email.com",
-        phone: "+212 6 56 78 90 12",
-        address: "654 Avenue Mohammed VI, Tanger"
-      },
-      items: [
-        { productName: "Grand Bol Artisanal", quantity: 1, price: 129 },
-        { productName: "Bol", quantity: 1, price: 149 }
-      ],
-      total: 278,
-      status: 'pending',
-      date: "2025-08-04",
-      paymentMethod: "Paiement à la livraison"
-    },
-  ]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('commandes')
+        .select(`
+          id,
+          date_commande,
+          montant_total,
+          statut,
+          users ( name, email ),
+          commande_produits (
+            quantite,
+            prix_unitaire,
+            products ( name )
+          )
+        `);
+
+      if (error) {
+        console.error('Error fetching orders:', error);
+        toast({ title: "Erreur", description: "Impossible de charger les commandes.", variant: "destructive" });
+      } else if (data) {
+        const formattedOrders = data.map((order: any) => ({
+          id: order.id.toString(),
+          date: new Date(order.date_commande).toLocaleDateString(),
+          total: order.montant_total,
+          status: order.statut,
+          customer: {
+            name: order.users?.name || 'N/A',
+            email: order.users?.email || 'N/A',
+          },
+          items: order.commande_produits.map((item: any) => ({
+            productName: item.products?.name || 'Produit inconnu',
+            quantity: item.quantite,
+            price: item.prix_unitaire,
+          })),
+        }));
+        setOrders(formattedOrders);
+      }
+      setLoading(false);
+    };
+
+    fetchOrders();
+  }, [toast]);
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const handleUpdateStatus = (orderId: string, newStatus: Order['status']) => {
-    setOrders(orders.map(order => 
-      order.id === orderId 
-        ? { ...order, status: newStatus }
-        : order
-    ));
-    toast({
-      title: "Succès",
-      description: "Statut de la commande mis à jour",
-    });
+  const handleUpdateStatus = async (orderId: string, newStatus: Order['status']) => {
+    const { error } = await supabase
+      .from('commandes')
+      .update({ statut: newStatus })
+      .eq('id', orderId);
+
+    if (error) {
+      toast({ title: "Erreur", description: "La mise à jour a échoué.", variant: "destructive" });
+    } else {
+      setOrders(orders.map(order => 
+        order.id === orderId 
+          ? { ...order, status: newStatus }
+          : order
+      ));
+      toast({ title: "Succès", description: "Statut de la commande mis à jour." });
+    }
   };
 
-  const handleDeleteOrder = (orderId: string) => {
-    setOrders(orders.filter(order => order.id !== orderId));
-    toast({
-      title: "Succès",
-      description: "Commande supprimée avec succès",
-    });
+  const handleDeleteOrder = async (orderId: string) => {
+    const { error: itemError } = await supabase
+      .from('commande_produits')
+      .delete()
+      .eq('commande_id', orderId);
+
+    if (itemError) {
+      toast({ title: "Erreur", description: "Impossible de supprimer les articles de la commande.", variant: "destructive" });
+      return;
+    }
+
+    const { error: orderError } = await supabase
+      .from('commandes')
+      .delete()
+      .eq('id', orderId);
+
+    if (orderError) {
+      toast({ title: "Erreur", description: "La suppression de la commande a échoué.", variant: "destructive" });
+    } else {
+      setOrders(orders.filter(order => order.id !== orderId));
+      toast({ title: "Succès", description: "Commande supprimée avec succès." });
+    }
   };
 
   const handleViewOrder = (order: Order) => {
@@ -173,15 +157,15 @@ const AdminSalesManager = () => {
 
   const getStatusBadge = (status: Order['status']) => {
     switch (status) {
-      case 'pending':
+      case 'en attente':
         return <Badge className="bg-yellow-100 text-yellow-800">En attente</Badge>;
-      case 'confirmed':
+      case 'confirmée':
         return <Badge className="bg-blue-100 text-blue-800">Confirmée</Badge>;
-      case 'shipped':
+      case 'expédiée':
         return <Badge className="bg-purple-100 text-purple-800">Expédiée</Badge>;
-      case 'delivered':
+      case 'livrée':
         return <Badge className="bg-green-100 text-green-800">Livrée</Badge>;
-      case 'cancelled':
+      case 'annulée':
         return <Badge className="bg-red-100 text-red-800">Annulée</Badge>;
       default:
         return <Badge>{status}</Badge>;
@@ -193,10 +177,10 @@ const AdminSalesManager = () => {
     : orders.filter(order => order.status === statusFilter);
 
   const totalRevenue = orders
-    .filter(order => order.status === 'delivered')
+    .filter(order => order.status === 'livrée')
     .reduce((sum, order) => sum + order.total, 0);
 
-  const pendingOrders = orders.filter(order => order.status === 'pending').length;
+  const pendingOrders = orders.filter(order => order.status === 'en attente').length;
 
   return (
     <div className="space-y-6">
@@ -234,11 +218,11 @@ const AdminSalesManager = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tous les statuts</SelectItem>
-            <SelectItem value="pending">En attente</SelectItem>
-            <SelectItem value="confirmed">Confirmées</SelectItem>
-            <SelectItem value="shipped">Expédiées</SelectItem>
-            <SelectItem value="delivered">Livrées</SelectItem>
-            <SelectItem value="cancelled">Annulées</SelectItem>
+            <SelectItem value="en attente">En attente</SelectItem>
+            <SelectItem value="confirmée">Confirmées</SelectItem>
+            <SelectItem value="expédiée">Expédiées</SelectItem>
+            <SelectItem value="livrée">Livrées</SelectItem>
+            <SelectItem value="annulée">Annulées</SelectItem>
           </SelectContent>
         </Select>
         <Button variant="outline" className="flex items-center gap-2">

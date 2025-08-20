@@ -33,7 +33,7 @@ const Header = () => {
   }, []);
 
   return (
-    <header className="w-full">
+  <header className="w-full">
       {/* Top Banner with sliding animation */}
       <div className="bg-primary text-primary-foreground py-2 px-4 overflow-hidden relative">
         <div className="container mx-auto flex items-center justify-center text-sm">
@@ -50,27 +50,50 @@ const Header = () => {
       <div className="bg-background border-b border-border py-4 relative">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between">
-            {/* Navigation with hover animations */}
+            {/* Desktop navigation */}
             <nav className="hidden md:flex space-x-8">
-                <Link href="/promotion" className="text-foreground hover:text-primary transition-all duration-300 transform hover:scale-110 hover:-translate-y-1 relative group font-serif">
-                  Promotion
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
-                </Link>
-                <Link href="/produits" className="text-foreground hover:text-primary transition-all duration-300 transform hover:scale-110 hover:-translate-y-1 relative group font-serif">
-                  Produits
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
-                </Link>
-                <Link href="/a-propos" className="text-foreground hover:text-primary transition-all duration-300 transform hover:scale-110 hover:-translate-y-1 relative group font-serif">
-                  À propos
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
-                </Link>
+              <Link href="/promotion" className="text-foreground hover:text-primary transition-all duration-300 transform hover:scale-110 hover:-translate-y-1 relative group font-serif">
+                Promotion
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+              </Link>
+              <Link href="/produits" className="text-foreground hover:text-primary transition-all duration-300 transform hover:scale-110 hover:-translate-y-1 relative group font-serif">
+                Produits
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+              </Link>
+              <Link href="/a-propos" className="text-foreground hover:text-primary transition-all duration-300 transform hover:scale-110 hover:-translate-y-1 relative group font-serif">
+                À propos
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+              </Link>
             </nav>
+
+            {/* Mobile navigation hamburger */}
+            <div className="md:hidden flex items-center">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="p-2">
+                    <span className="sr-only">Menu</span>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48">
+                  <DropdownMenuItem asChild>
+                    <Link href="/promotion">Promotion</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/produits">Produits</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/a-propos">À propos</Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
 
             {/* Logo with breathing animation */}
             <div className="flex-1 text-center md:flex-none">
               <Link href="/">
-                <h1 className="text-4xl font-bold text-primary animate-fade-in-up">
-                  <span className="italic font-serif hover:animate-pulse cursor-pointer transition-all duration-500 hover:text-4xl inline-block transform hover:rotate-2 tracking-wider">
+                <h1 className="text-2xl md:text-4xl font-bold text-primary animate-fade-in-up">
+                  <span className="italic font-serif hover:animate-pulse cursor-pointer transition-all duration-500 hover:text-3xl md:hover:text-4xl inline-block transform hover:rotate-2 tracking-wider">
                     Atlas coop art
                   </span>
                   <div className="text-xs font-light tracking-widest text-muted-foreground mt-1 font-serif italic">
